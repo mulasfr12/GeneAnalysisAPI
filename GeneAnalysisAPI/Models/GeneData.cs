@@ -1,5 +1,5 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace GeneAnalysisAPI.Models
 {
@@ -20,5 +20,15 @@ namespace GeneAnalysisAPI.Models
 
         [BsonElement("expression_value")]
         public double ExpressionValue { get; set; }
+
+        // 🔹 New Fields for Clinical Data
+        [BsonElement("disease_specific_survival")]
+        public int? DiseaseSpecificSurvival { get; set; } // 1 = survived, 0 = did not
+
+        [BsonElement("overall_survival")]
+        public int? OverallSurvival { get; set; } // 1 = survived, 0 = did not
+
+        [BsonElement("clinical_stage")]
+        public string ClinicalStage { get; set; }
     }
 }

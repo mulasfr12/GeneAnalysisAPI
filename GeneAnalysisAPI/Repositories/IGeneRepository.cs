@@ -8,6 +8,9 @@ namespace GeneAnalysisAPI.Repositories
         Task<GeneData> GetGeneByIdAsync(string id);
         Task<List<GeneData>> GetGenesByPatientIdAsync(string patientId);
         Task InsertGeneAsync(GeneData gene);
+        Task InsertGeneDataAsync(List<GeneData> geneDataList);
+        Task InsertClinicalDataAsync(List<ClinicalData> clinicalDataList);
+        Task<List<GeneData>> GetGeneDataWithClinicalInfoAsync(string patientId);
         Task UpdateGeneAsync(string id, GeneData updatedGene);
         Task DeleteGeneAsync(string id);
     }
