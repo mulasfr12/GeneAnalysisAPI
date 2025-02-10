@@ -19,7 +19,14 @@ builder.Services.AddSwaggerGen(options =>
         Format = "binary"
     });
 });
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorUI",
+        policy => policy
+            .AllowAnyOrigin()  // ✅ Allows Blazor WebAssembly to access API
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+});
 
 // Register dependencies
 builder.Services.AddSingleton<MongoDbService>();
@@ -35,7 +42,8 @@ builder.Services.AddSingleton<IMinioClient>(sp =>
         .Build());
 
 var app = builder.Build();
-
+// ✅ Apply CORS policy
+app.UseCors("AllowBlazorUI");
 // Redirect root URL (/) to Swagger UI
 app.MapGet("/", () => Results.Redirect("/swagger/index.html"));
 

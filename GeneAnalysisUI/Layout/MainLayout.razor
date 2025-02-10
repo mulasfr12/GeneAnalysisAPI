@@ -1,0 +1,16 @@
+﻿@inherits LayoutComponentBase
+@using GeneAnalysisUI.Layout  @* ✅ Add this line to reference NavMenu *@
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />  @* ✅ Use only NavMenu, no Layout.NavMenu *@
+    </div>
+    <div class="main">
+        <div class="top-row px-4">
+            <a href="https://localhost:7180/swagger/index.html" target="_blank">API Docs</a>
+        </div>
+        <div class="content px-4">
+            @Body
+        </div>
+    </div>
+</div>

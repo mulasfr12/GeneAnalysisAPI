@@ -1,0 +1,169 @@
+﻿@page "/gene-data"
+@using GeneAnalysisUI.Models
+@using GeneAnalysisUI.Services
+@inject ApiService ApiService
+@inject IJSRuntime JSRuntime
+
+<h3>Gene Analysis Data</h3>
+
+<input @bind="PatientId" placeholder="Enter Patient ID" />
+<button @onclick="LoadGeneData">Fetch Data</button>
+
+@if (isLoading)
+{
+    <p>Loading data...</p>
+}
+else if (hasError)
+{
+    <p style="color: red;">Error fetching data. Please check Patient ID.</p>
+}
+else if (geneDataList != null && geneDataList.Any())
+{
+    <h4>Gene Expression Chart</h4>
+    <div class="chart-container">
+        <canvas id="geneChart"></canvas>
+    </div>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Gene Name</th>
+                <th>Expression Value</th>
+                <th>Cancer Cohort</th>
+                <th>Survival (DSS)</th>
+                <th>Overall Survival</th>
+                <th>Clinical Stage</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var gene in geneDataList)
+            {
+                <tr>
+                    <td>@gene.GeneName</td>
+                    <td>@gene.ExpressionValue</td>
+                    <td>@gene.CancerCohort</td>
+                    <td>@(gene.DiseaseSpecificSurvival == 1 ? "Yes" : "No")</td>
+                    <td>@(gene.OverallSurvival == 1 ? "Yes" : "No")</td>
+                    <td>@gene.ClinicalStage</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p style="color: red;">No data found for Patient ID: @PatientId</p>
+}
+
+@code {
+    private string PatientId { get; set; } = "";
+    private List<GeneAnalysisUI.Models.GeneData> geneDataList = new();
+    private bool isLoading = false;
+    private bool hasError = false;
+    private bool shouldUpdateChart = false;
+
+    // ✅ Move labels and values outside to be used across methods
+    private string[] labels = Array.Empty<string>();
+    private double[] values = Array.Empty<double>();
+
+    private async Task LoadGeneData()
+    {
+        if (string.IsNullOrWhiteSpace(PatientId))
+        {
+            hasError = true;
+            return;
+        }
+
+        isLoading = true;
+        hasError = false;
+
+        try
+        {
+            var result = await ApiService.GetGeneData(PatientId);
+            if (result != null && result.Any())
+            {
+                geneDataList = result;
+
+                // ✅ Assign values for use in OnAfterRenderAsync
+                labels = geneDataList.Select(g => g.GeneName).ToArray();
+                values = geneDataList.Select(g => g.ExpressionValue).ToArray();
+
+                shouldUpdateChart = true;
+            }
+            else
+            {
+                hasError = true;
+            }
+        }
+        catch
+        {
+            hasError = true;
+        }
+
+        isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("✅ First render complete.");
+        }
+
+        if (shouldUpdateChart)
+        {
+            shouldUpdateChart = false; // ✅ Reset flag
+
+            for (int i = 0; i < 5; i++) // Retry up to 5 times
+            {
+                try
+                {
+                    var canvasExists = await JSRuntime.InvokeAsync<bool>("canvasExists", "geneChart");
+                    if (canvasExists)
+                    {
+                        break;
+                    }
+                }
+                catch (JSException jsEx)
+                {
+                    Console.WriteLine($"JavaScript error: {jsEx.Message} - Retrying...");
+                }
+                await Task.Delay(500); // Wait for 500ms before retrying
+            }
+
+            await UpdateChart();
+        }
+    }
+
+    private async Task UpdateChart()
+    {
+        try
+        {
+            if (geneDataList == null || !geneDataList.Any())
+            {
+                Console.WriteLine("No data available for chart.");
+                return;
+            }
+
+            await JSRuntime.InvokeVoidAsync("console.log", "🔄 Updating chart...");
+
+            if (labels.Length > 0 && values.Length > 0)
+            {
+                Console.WriteLine("📊 Sending data to JavaScript for chart rendering...");
+                await JSRuntime.InvokeVoidAsync("createGeneChart", "geneChart", labels, values);
+            }
+            else
+            {
+                Console.WriteLine("⚠️ No valid data for the chart.");
+            }
+        }
+        catch (JSException jsEx)
+        {
+            Console.WriteLine($"JavaScript error: {jsEx.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+        }
+    }
+}
